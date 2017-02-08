@@ -15,6 +15,7 @@ int main(int argc, char **argv)
 {
     sparrowJS* sparrow=new sparrowJS();
     sparrow->elva("javascript code");
+    delete sparrow;
     return 0;
 }
 
