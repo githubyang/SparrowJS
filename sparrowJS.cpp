@@ -406,6 +406,11 @@ VARIABLE* sparrowJS::plusMinus(lex *const &l){
         VARIABLE* f=this->term(l);
         res=this->mathsOp(res,f,s);
     }
+    if(l->token==L_PLUSPLUS){
+        int s=l->token;
+        l->analyses(s);
+        res=this->mathsOp(res,res,s);
+    }
     return res;
 }
 VARIABLE* sparrowJS::term(lex *const &l){
@@ -555,8 +560,10 @@ VARIABLE* sparrowJS::factor(lex *const &l){
 // 语句分析
 void sparrowJS::stmt(lex* const &l){
     if(l->token==L_ID){
+        this->isIf=true;
         this->expressions(l);
     }else if (l->token==L_VAR){
+        this->isIf=true;
         VARIABLE* node=nullptr;
         l->analyses(L_VAR);
         std::string variableName=l->tokenStr;
@@ -575,6 +582,7 @@ void sparrowJS::stmt(lex* const &l){
         }
         l->analyses(';');
     }else if(l->token==L_FUNCTION){
+        this->isIf=true;
         l->analyses(L_FUNCTION);
         std::string funcName=l->tokenStr;
         VARIABLE* res=new VARIABLE{0};
@@ -618,7 +626,72 @@ void sparrowJS::stmt(lex* const &l){
         }
         this->addChild(res);
     }
+    else if (l->token==L_IF||l->token==L_ELSEIF){
+        l->analyses(l->token);
+        l->analyses('(');
+        VARIABLE* res=this->expressions(l);
+        l->analyses(')');
+        if(res->intData>0){
+            l->analyses('{');
+            if(this->isIf){
+                this->expressions(l);
+                l->analyses(';');
+                l->analyses('}');
+                this->isIf=false;
+            }else{
+                int brackets=1;
+                while (l->token && brackets) {
+                    if (l->token == '{') brackets++;
+                    if (l->token == '}') brackets--;
+                    l->analyses(l->token);
+                }
+            }
+            
+            if(l->token){}
+            //l->analyses('}');
+        }else{
+            l->analyses(l->token);
+            int brackets=1;
+            while (l->token && brackets) {
+                if (l->token == '{') brackets++;
+                if (l->token == '}') brackets--;
+                l->analyses(l->token);
+            }
+            if(this->isIf&&l->token==L_ELSE){
+                l->analyses(L_ELSE);
+                l->analyses(l->token);
+                this->expressions(l);
+            }else if(!this->isIf&&l->token==L_ELSE){
+                int brackets=1;
+                while (l->token && brackets) {
+                    if (l->token == '{') brackets++;
+                    if (l->token == '}') brackets--;
+                    l->analyses(l->token);
+                }
+            }
+            
+        }
+    }
+    else if (l->token==L_ELSE){
+        l->analyses(l->token);
+        if(this->isIf){
+            l->analyses('{');
+            this->expressions(l);
+            l->analyses(';');
+            l->analyses('}');
+        }else if(!this->isIf){
+            l->analyses('{');
+            int brackets=1;
+            while (l->token && brackets) {
+                if (l->token == '{') brackets++;
+                if (l->token == '}') brackets--;
+                l->analyses(l->token);
+            }
+        }
+        this->isIf=true;
+    }
     else if (l->token==L_RETURN){
+        this->isIf=true;
         l->analyses(L_RETURN);
         VARIABLE* res=new VARIABLE{0};
         if(l->token!=';'){
@@ -626,6 +699,58 @@ void sparrowJS::stmt(lex* const &l){
             res->last=res;
             this->stack.pop_back();
             this->stack.push_back(res);
+        }
+    }
+    else if(l->token==L_FOR){
+        this->isIf=true;
+        l->analyses(L_FOR);
+        l->analyses('(');
+        this->stmt(l);
+        int start=l->tokenStart;
+        
+        while (l->token!=';') {
+            l->analyses(l->token);
+        }
+        l->analyses(';');
+        std::string str=l->getSubString(start);
+        
+        lex* newLex=new lex(str);
+        VARIABLE* isLoop=this->expressions(newLex);
+        bool one=isLoop->intData>0;
+        if(one&&isLoop->intData>0){
+            VARIABLE* t=this->expressions(l);
+            l->analyses(')');
+            int num=l->tokenStart;
+            l->analyses('{');
+            int brackets=1;
+            while (l->token && brackets) {
+                if (l->token == '{') brackets++;
+                if (l->token == '}') brackets--;
+                l->analyses(l->token);
+            }
+            std::string blockStr=l->getSubString(num);
+            lex* blockLex=new lex(blockStr);
+            
+            while (isLoop->intData>0) {
+                blockLex->reset();
+                blockLex->analyses('{');
+                this->stmt(blockLex);
+                newLex->reset();
+                isLoop=this->expressions(newLex);
+                t->intData+=1;
+            }
+            delete blockLex;
+            delete newLex;
+        }else if(!one){
+            this->expressions(l);
+            l->analyses(')');
+            l->analyses('{');
+            int brackets=1;
+            while (l->token && brackets) {
+                if (l->token == '{') brackets++;
+                if (l->token == '}') brackets--;
+                l->analyses(l->token);
+            }
         }
     }
     else{
@@ -645,6 +770,23 @@ void sparrowJS::elva(const std::string &code){
         }
     }
     delete l;
+}
+
+VARIABLE* sparrowJS::top(){
+    VARIABLE* res=nullptr;
+    if(this->stack.size()==0){
+        return NULL;
+    }else{
+        VARIABLE* v=this->stack[int(this->stack.size())-1];
+        while (v) {
+            if(!v->next){
+                res=v;
+                break;
+            }
+            v=v->next;
+        }
+    }
+    return res;
 }
 
 VARIABLE* sparrowJS::findVariable(const std::string &name){
@@ -753,7 +895,7 @@ VARIABLE* sparrowJS::mathsOp(VARIABLE *fa, VARIABLE *fb, int s){
             res->token=L_INT;
             res->intData=c;
         }
-        delete fb;
+        //delete fb;
         return res;
     }
     
@@ -997,7 +1139,7 @@ VARIABLE* sparrowJS::mathsOp(VARIABLE *fa, VARIABLE *fb, int s){
             fa->token=L_FLOAT;
             fa->intData=0;
         }
-        delete fb;
+        //delete fb;
         delete res;
         return fa;
     }
@@ -1013,12 +1155,24 @@ VARIABLE* sparrowJS::mathsOp(VARIABLE *fa, VARIABLE *fb, int s){
             fa->token=L_FLOAT;
             fa->intData=0;
         }
-        delete fb;
+        //delete fb;
         delete res;
         return fa;
     }
+    else if(s==L_PLUSPLUS){
+        bt=this->isType(*fb);
+        if(bt==L_INT){
+            fb->intData+=1;
+            fb->token=L_INT;
+        }else if(bt==L_FLOAT){
+            fb->doubleData+=1;
+            res->token=L_FLOAT;
+        }
+        delete res;
+        return fb;
+    }
 
-    delete fa;
-    delete fb;
+    //delete fa;
+    //delete fb;
     return res;
 }

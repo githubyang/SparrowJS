@@ -126,6 +126,9 @@ class sparrowJS{
         VARIABLE* factor(lex* const &l);// * / %
         VARIABLE* functionCall(lex* const &l,VARIABLE* v,const std::string &name);
         VARIABLE* mathsOp(VARIABLE* fa,VARIABLE* fb,int s);
+    
+        bool isIf=true;
+        VARIABLE* top();
 };
 
 #endif /* sparrowJS_hpp */

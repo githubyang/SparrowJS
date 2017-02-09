@@ -16,6 +16,7 @@ enum LEX_TYPE{
     L_ID=256,// avoid starting from 226 and Ascii code coincidence
     L_IF,
     L_ELSE,
+    L_ELSEIF,
     L_DO,
     L_WHILE,
     L_FOR,
@@ -80,6 +81,7 @@ class lex{
         int tokenLastEnd,tokenEnd;
         std::string getSubData(int &pos,int &factor);
         std::string getSubString(int lastPosition);
+        void reset();
     private:
         char *data;
         int dataStart,dataEnd,dataPos;

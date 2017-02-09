@@ -32,7 +32,9 @@
 //const char *testCode = "print(9);";
 //const char *testCode = "var a=(-2*8)/2-5.3;";
 //const char *testCode = "var a=3*(-2);";
-const char *testCode = "var a=2;a-=1.1;print(a);";
+//const char *testCode = "if(1>1){print(2);}else if(1>2){print(1345);}else if(3>1){print(333334);}else{print(34);} print(44);";
+const char *testCode = "for(var i=0;i<5;i++){print(i);} print(22);";
+//const char *testCode = "var a=2;a-=1.1;print(a);";
 
 
 void js_prints(VARIABLE &v, void *userdata,void *l) {

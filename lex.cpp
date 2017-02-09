@@ -29,7 +29,18 @@ lex::lex(const std::string &input){
     this->getNextChar();
     this->getNextToken();
 };
-
+void lex::reset(){
+    dataStart=0;
+    tokenStr="";
+    token=0;
+    dataPos=0;
+    tokenEnd=0;
+    tokenLastEnd=0;
+    tokenStart=0;
+    this->getNextChar();
+    this->getNextChar();
+    this->getNextToken();
+}
 void lex::getNextChar(){
     this->currCh=this->lastCh;
     if(this->dataPos<=this->dataEnd){
@@ -74,6 +85,16 @@ void lex::getNextToken(){
             this->token=L_IF;
         }else if (this->tokenStr=="else"){
             this->token=L_ELSE;
+            if(this->currCh==' '&&this->lastCh=='i'){
+                this->getNextChar();
+                while (util->isVariable(this->currCh)) {
+                    this->tokenStr+=this->currCh;
+                    this->getNextChar();
+                }
+                if(this->tokenStr=="elseif"){
+                    this->token=L_ELSEIF;
+                }
+            }
         }else if(this->tokenStr=="do"){
             this->token=L_DO;
         }else if(this->tokenStr=="while"){
@@ -168,6 +189,10 @@ void lex::getNextToken(){
             this->token=L_PLUSEQUAL;
             this->getNextChar();
         }
+        else if(this->token=='+'&&this->currCh=='+'){
+            this->token=L_PLUSPLUS;
+            this->getNextChar();
+        }
         else if(this->token=='-'&&this->currCh=='='){
             this->token=L_MINUSEQUAL;
             this->getNextChar();
@@ -178,7 +203,7 @@ void lex::getNextToken(){
     printf("Analysis result:%s \n",tokenStr.c_str());
 };
 std::string lex::getSubString(int lastPosition) {
-    int lastCharIdx = tokenLastEnd+1;
+    int lastCharIdx = tokenEnd+1;
     if (lastCharIdx < dataEnd) {
         /* save a memory alloc by using our data array to create the
          substring */
