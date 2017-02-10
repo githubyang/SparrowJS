@@ -17,6 +17,8 @@
 
 typedef struct variable VARIABLE;
 typedef struct funcVar FUNCVAR;
+typedef struct array ARRAY;
+
 typedef struct factor FACTOR;
 typedef struct symbol SYMBOL;
 
@@ -30,6 +32,7 @@ struct variable{
     double doubleData;
     signed int intData;
     FUNCVAR* refsFunc;
+    ARRAY* array;
     
     VARIABLE* prev;
     VARIABLE* next;
@@ -67,6 +70,45 @@ struct funcVar{
     VARIABLE* last;
     
     nativeFuncPtr ptr;
+};
+struct array{
+    int refs;
+    int token;
+    unsigned int key;
+    
+    ARRAY* prev;
+    ARRAY* next;
+    ARRAY* first;
+    ARRAY* last;
+    
+    VARIABLE* value;
+    void addChildNoDup(ARRAY* node){
+        ARRAY* v=this->next;
+        if(!v){
+            this->next=node;
+        }else{
+            while(v){
+                if(!v->next){
+                    v->next=node;
+                    break;
+                }else{
+                    v=v->next;
+                }
+            }
+        }
+    };
+    VARIABLE* findChild(int &n){
+        ARRAY* v=this->next;
+        while(v){
+            if(v->key==n){
+                return v->value;
+                break;
+            }else{
+                v=v->next;
+            }
+        }
+        return new VARIABLE{0};
+    };
 };
 
 struct factor{

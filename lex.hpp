@@ -36,6 +36,7 @@ enum LEX_TYPE{
     L_INT,
     L_FLOAT,
     L_STRING,
+    L_ARRAY,
     
     L_PLUS,
     L_MULT,

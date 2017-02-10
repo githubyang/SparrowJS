@@ -35,21 +35,18 @@
 //const char *testCode = "if(1>1){print(2);}else if(1>2){print(1345);}else if(3>1){print(333334);}else{print(34);} print(44);";
 const char *testCode = "for(var i=0;i<5;i++){print(i);} print(22);";
 //const char *testCode = "var a=2;a-=1.1;print(a);";
-
+//const char *testCode = "var s=2;var arr=[s];var b=arr[0];b=6;print(b);";
 
 void js_prints(VARIABLE &v, void *userdata,void *l) {
     VARIABLE* t=v.next;
-    while (t) {
-        if(t->token==L_INT){
-            printf("> %d\n", t->intData);
-        }
-        if(t->token==L_FLOAT){
-            printf("> %f\n", t->doubleData);
-        }
-        if(t->token==L_STRING){
-            printf("> %s\n", t->strData.c_str());
-        }
-        t=t->next;
+    if(t->token==L_INT){
+        printf("> %d\n", t->intData);
+    }
+    if(t->token==L_FLOAT){
+        printf("> %f\n", t->doubleData);
+    }
+    if(t->token==L_STRING){
+        printf("> %s\n", t->strData.c_str());
     }
 }
 
