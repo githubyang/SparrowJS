@@ -29,14 +29,15 @@ enum LEX_TYPE{
     L_FALSE,
     L_NULL,
     L_UNDEFINED,
-    L_NEW,
+    L_NEW,// 272
     
     L_REF,
     
-    L_INT,
-    L_FLOAT,
-    L_STRING,
-    L_ARRAY,
+    L_INT,// 274
+    L_FLOAT,// 275
+    L_STRING,// 276
+    L_ARRAY,// 277
+    L_OBJECT,
     
     L_PLUS,
     L_MULT,

@@ -18,6 +18,7 @@
 typedef struct variable VARIABLE;
 typedef struct funcVar FUNCVAR;
 typedef struct array ARRAY;
+typedef struct object OBJECT;
 
 typedef struct factor FACTOR;
 typedef struct symbol SYMBOL;
@@ -33,6 +34,7 @@ struct variable{
     signed int intData;
     FUNCVAR* refsFunc;
     ARRAY* array;
+    OBJECT* object;
     
     VARIABLE* prev;
     VARIABLE* next;
@@ -111,6 +113,47 @@ struct array{
     };
 };
 
+struct object{
+    int refs;
+    int token;
+    std::string key;
+    
+    VARIABLE* value;
+    
+    OBJECT* prev;
+    OBJECT* next;
+    OBJECT* first;
+    OBJECT* last;
+    
+    void addChildNoDup(OBJECT* node){
+        OBJECT* v=this->next;
+        if(!v){
+            this->next=node;
+        }else{
+            while(v){
+                if(!v->next){
+                    v->next=node;
+                    break;
+                }else{
+                    v=v->next;
+                }
+            }
+        }
+    };
+    VARIABLE* findChild(std::string &s){
+        OBJECT* v=this->next;
+        while(v){
+            if(v->key==s){
+                return v->value;
+                break;
+            }else{
+                v=v->next;
+            }
+        }
+        return new VARIABLE{0};
+    };
+};
+
 struct factor{
     int token;
     std::string strData;
@@ -164,8 +207,8 @@ class sparrowJS{
         VARIABLE* shift(lex* const &l);// << >> >>>
         VARIABLE* plusMinus(lex* const &l);// + - ++ --
         VARIABLE* term(lex* const &l);// * / %
-        VARIABLE* unary(lex* const &l);// !
-        VARIABLE* factor(lex* const &l);// * / %
+        VARIABLE* unary(lex* const &l,VARIABLE* v=nullptr);// !
+        VARIABLE* factor(lex* const &l,VARIABLE* v=nullptr);// * / %
         VARIABLE* functionCall(lex* const &l,VARIABLE* v,const std::string &name);
         VARIABLE* mathsOp(VARIABLE* fa,VARIABLE* fb,int s);
     

@@ -349,7 +349,7 @@ VARIABLE* sparrowJS::ternary(lex *const &l){
     }
     return res;
 }
-VARIABLE* sparrowJS::unary(lex *const &l){
+VARIABLE* sparrowJS::unary(lex *const &l,VARIABLE* v){
     VARIABLE* res=nullptr;
     if(l->token=='!'){
         int s=l->token;
@@ -357,7 +357,7 @@ VARIABLE* sparrowJS::unary(lex *const &l){
         VARIABLE* f=this->factor(l);
         res=this->mathsOp(res, f, s);
     }else{
-        res=this->factor(l);
+        res=this->factor(l,v);
     }
     
     return res;
@@ -423,24 +423,63 @@ VARIABLE* sparrowJS::term(lex *const &l){
     }
     return res;
 }
-VARIABLE* sparrowJS::factor(lex *const &l){
+VARIABLE* sparrowJS::factor(lex *const &l,VARIABLE* v){
+    VARIABLE* res=nullptr;
     if(l->token=='('){
         l->analyses(l->token);
-        VARIABLE* res=this->expressions(l);
+        res=this->expressions(l);
         l->analyses(')');
+        return res;
+    }
+    if(l->token=='{'){
+        res=new VARIABLE{0};
+        OBJECT* obj=new OBJECT{0};
+        l->analyses('{');
+        while (l->token!='}') {
+            if(l->token==L_ID||l->token==L_STRING){
+                std::string name=l->tokenStr;
+                VARIABLE* node=new VARIABLE{0};
+                OBJECT* object=new OBJECT{0};
+                l->analyses(l->token);
+                l->analyses(':');
+                node=this->expressions(l);
+                object->key=name;
+                object->value=node;
+                obj->addChildNoDup(object);
+            }else{
+            }
+            if(l->token==','){
+                l->analyses(',');
+            }else if(l->token==';'){
+                break;
+            }
+        }
+        res->object=obj;
+        res->token=L_OBJECT;
+        res->refs=1;
         return res;
     }
     
     if(l->token==L_ID){
-        VARIABLE* res=this->findVariable(l->tokenStr);
+        if(v){
+            res=v;
+        }else{
+            res=this->findVariable(l->tokenStr);
+        }
         if(!res){
             res=new VARIABLE{0};
         }
         
         std::string idName=l->tokenStr;
         l->analyses(L_ID);
-        if (l->token=='('||l->token=='['||l->token=='=') {
-            VARIABLE* temp=this->findVariable(idName);
+        
+        if (l->token=='('||l->token=='['||l->token=='='||l->token=='.') {
+            VARIABLE* temp=nullptr;
+            if(v){
+                temp=v;
+            }else{
+                temp=this->findVariable(idName);
+            }
             if(!temp){
                 throw new jsException("Variable or function not defined");
             }
@@ -450,6 +489,16 @@ VARIABLE* sparrowJS::factor(lex *const &l){
                 res=this->mathsOp(temp, v, '=');
                 return res;
             }
+            if(l->token=='.'){
+                l->analyses('.');
+                std::string name=l->tokenStr;
+                if(temp->token==L_OBJECT){
+                    res=temp->object->findChild(name);
+                }
+                res=this->factor(l,res);
+                return res;
+            }
+            
             l->analyses(l->token);
             if(temp->token==L_FUNCTION){
                 if(strcmp(temp->refsFunc->strData.c_str(),"")){
@@ -566,6 +615,7 @@ VARIABLE* sparrowJS::factor(lex *const &l){
             res->refsFunc->strData=str;
             res->refsFunc->refs=1;
         }
+        res->token=L_FUNCTION;
         return res;
     }
     if(l->token==L_STRING){
@@ -605,7 +655,9 @@ void sparrowJS::stmt(lex* const &l){
     if(l->token==L_ID){
         this->isIf=true;
         this->expressions(l);
-    }else if (l->token==L_VAR){
+        l->analyses(l->token);
+    }
+    if (l->token==L_VAR){
         this->isIf=true;
         VARIABLE* node=nullptr;
         l->analyses(L_VAR);
@@ -619,12 +671,13 @@ void sparrowJS::stmt(lex* const &l){
                 this->addChild(node);
             }
             if (l->token != ';'){
-                l->analyses(',');
+                l->analyses(l->token);
                 variableName=l->tokenStr;
             }
         }
         l->analyses(';');
-    }else if(l->token==L_FUNCTION){
+    }
+    if(l->token==L_FUNCTION){
         this->isIf=true;
         l->analyses(L_FUNCTION);
         std::string funcName=l->tokenStr;
@@ -669,7 +722,7 @@ void sparrowJS::stmt(lex* const &l){
         }
         this->addChild(res);
     }
-    else if (l->token==L_IF||l->token==L_ELSEIF){
+    if (l->token==L_IF||l->token==L_ELSEIF){
         l->analyses(l->token);
         l->analyses('(');
         VARIABLE* res=this->expressions(l);
@@ -715,7 +768,7 @@ void sparrowJS::stmt(lex* const &l){
             
         }
     }
-    else if (l->token==L_ELSE){
+    if (l->token==L_ELSE){
         l->analyses(l->token);
         if(this->isIf){
             l->analyses('{');
@@ -733,7 +786,7 @@ void sparrowJS::stmt(lex* const &l){
         }
         this->isIf=true;
     }
-    else if (l->token==L_RETURN){
+    if (l->token==L_RETURN){
         this->isIf=true;
         l->analyses(L_RETURN);
         VARIABLE* res=new VARIABLE{0};
@@ -744,7 +797,7 @@ void sparrowJS::stmt(lex* const &l){
             this->stack.push_back(res);
         }
     }
-    else if(l->token==L_FOR){
+    if(l->token==L_FOR){
         this->isIf=true;
         l->analyses(L_FOR);
         l->analyses('(');
@@ -797,7 +850,7 @@ void sparrowJS::stmt(lex* const &l){
         }
     }
     else{
-        l->analyses(l->token);
+        //l->analyses(l->token);
     }
     
 }
